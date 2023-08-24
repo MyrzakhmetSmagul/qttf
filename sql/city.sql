@@ -1,0 +1,9 @@
+INSERT INTO city (city_name) VALUES ('Астана');
+INSERT INTO city (city_name) VALUES ('Алматы');
+INSERT INTO city (city_name) VALUES ('Костанай');
+INSERT INTO city (city_name) VALUES ('Усть-Каменогорск');
+INSERT INTO city (city_name) VALUES ('Семей');
+INSERT INTO city (city_name) VALUES ('Лисаковск');
+INSERT INTO city (city_name) VALUES ('Караганда');
+INSERT INTO city (city_name) VALUES ('Каскелен');
+INSERT INTO city (city_name) VALUES ('Рудный');
