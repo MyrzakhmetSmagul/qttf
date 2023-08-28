@@ -11,6 +11,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/oauth2"
@@ -24,6 +25,8 @@ var (
 	// TODO: randomize it
 	oauthStateString = "pseudo-random"
 	tok              = make(chan *oauth2.Token)
+	cities           = make(map[string]int)
+	names            = make(map[string]int)
 )
 
 func init() {
@@ -74,8 +77,6 @@ type DatabaseConfig struct {
 	SSLMode  string `json:"sslmode"`
 }
 
-var cities = make(map[string]int)
-
 func main() {
 	// go func() {
 	// 	http.HandleFunc("/callback", handleGoogleCallback)
@@ -113,8 +114,8 @@ func main() {
 		record := Rating{}
 		num, _ := strconv.Atoi(row[0].(string))
 		record.Position = num
+		names[row[1].(string)]++
 		fullName := strings.Split(row[1].(string), " ")
-
 		record.Player.Surname = fullName[0]
 		if len(fullName) > 1 {
 			record.Player.Name = fullName[1]
@@ -126,28 +127,35 @@ func main() {
 		playerScript += record.Player.ToScript()
 		num, _ = strconv.Atoi(row[3].(string))
 		record.Rating = num
-		record.UpdateTime = row[4].(string)
+		date, err := time.Parse("2.1.2006", row[4].(string))
+		record.UpdateTime = date.Format("2006-01-02")
+		if err != nil {
+			log.Fatal("time parse: ", err)
+		}
 		ratingScript += record.ToScript()
+	}
+	fmt.Println("duplicates")
+	for n, v := range names {
+		if v > 1 {
+			fmt.Println(n, v)
+		}
 	}
 	playerFile.Write([]byte(playerScript))
 	ratingFile.Write([]byte(ratingScript))
 
-	// cityScript, _ := os.ReadFile(path.Clean("./sql/city.sql"))
-
-	// db := getDB()
-	// err := db.db.QueryRow("INSERT INTO city (city_name) VALUES ('Алматы') ON CONFLICT (city_name) DO NOTHING;SELECT city_id FROM city WHERE city_name='Алматы'").Scan(&i)
-	// _, err = db.db.Exec(string(cityScript))
-	// if err != nil {
-	// 	log.Fatal("city: ", err)
-	// }
-	// _, err = db.db.Exec(PlayerScript)
+	db := getDB()
+	err = cityActualization(db)
+	if err != nil {
+		log.Fatal("Player: ", err)
+	}
+	// _, err = db.db.Exec(playerScript)
 	// if err != nil {
 	// 	log.Fatal("Player: ", err)
 	// }
-	// _, err = db.db.Exec(ratingScript)
-	// if err != nil {
-	// 	log.Fatal("rating: ", err)
-	// }
+	_, err = db.db.Exec(ratingScript)
+	if err != nil {
+		log.Fatal("rating: ", err)
+	}
 }
 
 func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
@@ -242,18 +250,23 @@ func (p Player) ToScript() string {
 }
 
 func (r Rating) ToScript() string {
-	return fmt.Sprintf("INSERT INTO rating(player_id, rating, last_update) VALUES((SELECT player_id FROM player WHERE player_name='%s' AND player_surname='%s'), %d, '%s');\n", r.Player.Name, r.Player.Surname, r.Rating, r.UpdateTime)
+	return fmt.Sprintf("INSERT INTO rating(player_id, rating, last_update) VALUES((SELECT player_id FROM player WHERE player_name='%s' AND player_surname='%s'), %d, '%s') ON CONFLICT DO NOTHING;\n", r.Player.Name, r.Player.Surname, r.Rating, r.UpdateTime)
 }
 
 func cityActualization(db DB) error {
-	query := `INSERT INTO city (city_name) VALUES ($1) ON CONFLICT (city_name) DO NOTHING;
-	SELECT city_id FROM city WHERE city_name=$1`
+	queryInsert := `INSERT INTO city (city_name) VALUES ($1) ON CONFLICT (city_name) DO NOTHING;`
+	querySelect := `SELECT city_id FROM city WHERE city_name=$1`
 
-	for city, _ := range cities {
-		var id int
-		err := db.db.QueryRow(query, city).Scan(&id)
+	for city := range cities {
+		_, err := db.db.Exec(queryInsert, city)
 		if err != nil {
-			return fmt.Errorf("cityActualization%w", err)
+			return fmt.Errorf("cityInsertion: %w", err)
+		}
+
+		var id int
+		err = db.db.QueryRow(querySelect, city).Scan(&id)
+		if err != nil {
+			return fmt.Errorf("citySelection: %w", err)
 		}
 
 		cities[city] = id
