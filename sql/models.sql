@@ -9,7 +9,6 @@ CREATE TABLE player (
     player_id SERIAL PRIMARY KEY,
     player_name VARCHAR,
     player_surname VARCHAR,
-    profile_link VARCHAR NOT NULL,
     city_id INT REFERENCES city(city_id) ON DELETE CASCADE
 );
 

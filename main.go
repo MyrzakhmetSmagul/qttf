@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/oauth2"
@@ -17,15 +19,33 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
+var (
+	config *oauth2.Config
+	// TODO: randomize it
+	oauthStateString = "pseudo-random"
+	tok              = make(chan *oauth2.Token)
+)
+
+func init() {
+	credential, err := os.ReadFile(path.Clean("./credential.json"))
+	if err != nil {
+		log.Fatalf("Unable to read of credential json: %v", err)
+	}
+	config, err = google.ConfigFromJSON(credential, sheets.SpreadsheetsReadonlyScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+}
+
 type Rating struct {
 	Id         int
 	Position   int
-	User       User
+	Player     Player
 	Rating     int
 	UpdateTime string
 }
 
-type User struct {
+type Player struct {
 	Id      int
 	Surname string
 	Name    string
@@ -57,17 +77,12 @@ type DatabaseConfig struct {
 var cities = make(map[string]int)
 
 func main() {
-	ctx := context.Background()
-	credential, err := os.ReadFile(path.Clean("./credential.json"))
-	fmt.Println(string(credential))
-	if err != nil {
-		log.Fatalf("Unable to read of credential json: %v", err)
-	}
-	config, err := google.ConfigFromJSON(credential, sheets.SpreadsheetsReadonlyScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
+	// go func() {
+	// 	http.HandleFunc("/callback", handleGoogleCallback)
+	// 	fmt.Println(http.ListenAndServe(":8080", nil))
+	// }()
 
+	ctx := context.Background()
 	client := getClient(config)
 
 	srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
@@ -83,66 +98,65 @@ func main() {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
 	}
 
-	if len(resp.Values) == 0 {
-		fmt.Println("No data found.")
+	playerFile, _ := os.Create(path.Clean("./sql/player.sql"))
+	playerScript := ""
+	ratingFile, _ := os.Create(path.Clean("./sql/rating.sql"))
+	ratingScript := ""
+
+	defer playerFile.Close()
+	defer ratingFile.Close()
+	saveResp("resp.json", resp)
+	for i, row := range resp.Values {
+		if i == 0 || row[0] == "" {
+			continue
+		}
+		record := Rating{}
+		num, _ := strconv.Atoi(row[0].(string))
+		record.Position = num
+		fullName := strings.Split(row[1].(string), " ")
+
+		record.Player.Surname = fullName[0]
+		if len(fullName) > 1 {
+			record.Player.Name = fullName[1]
+		}
+		city := row[2].(string)
+		record.Player.City.Name = city
+		cities[city]++
+
+		playerScript += record.Player.ToScript()
+		num, _ = strconv.Atoi(row[3].(string))
+		record.Rating = num
+		record.UpdateTime = row[4].(string)
+		ratingScript += record.ToScript()
 	}
-	fmt.Println(resp.Values[0]...)
-	// xlFile, err := xlsx.OpenFile("excelFileName")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// userFile, _ := os.Create(path.Clean("./sql/user.sql"))
-	// userScript := ""
-	// ratingFile, _ := os.Create(path.Clean("./sql/rating.sql"))
-	// ratingScript := ""
-
-	// sheet := xlFile.Sheet["KZ"]
-	// defer userFile.Close()
-	// defer ratingFile.Close()
-	// for i, row := range sheet.Rows {
-	// 	if i == 0 || row.Cells[0].String() == "" {
-	// 		continue
-	// 	}
-	// 	record := Rating{}
-	// 	temp, _ := strconv.Atoi(row.Cells[0].String())
-	// 	record.Position = temp
-	// 	fullName := strings.Split(row.Cells[1].String(), " ")
-	// 	record.User.Surname = fullName[0]
-	// 	if len(fullName) > 1 {
-	// 		record.User.Name = fullName[1]
-	// 	}
-	// 	city := row.Cells[2].String()
-	// 	record.User.City.Name = city
-	// 	cities[city]++
-
-	// 	userScript += record.User.ToScript()
-	// 	temp, _ = strconv.Atoi(row.Cells[3].String())
-	// 	record.Rating = temp
-	// 	excelTime, _ := row.Cells[4].GetTime(false) // Get the time value from the cell
-	// 	goTime := excelTime.UTC()                   // Convert to UTC time
-	// 	record.UpdateTime = goTime.Format("02.01.2006")
-	// 	ratingScript += record.ToScript()
-	// }
-	// userFile.Write([]byte(userScript))
-	// ratingFile.Write([]byte(ratingScript))
+	playerFile.Write([]byte(playerScript))
+	ratingFile.Write([]byte(ratingScript))
 
 	// cityScript, _ := os.ReadFile(path.Clean("./sql/city.sql"))
 
 	// db := getDB()
-	// // err := db.db.QueryRow("INSERT INTO city (city_name) VALUES ('Алматы') ON CONFLICT (city_name) DO NOTHING;SELECT city_id FROM city WHERE city_name='Алматы'").Scan(&i)
+	// err := db.db.QueryRow("INSERT INTO city (city_name) VALUES ('Алматы') ON CONFLICT (city_name) DO NOTHING;SELECT city_id FROM city WHERE city_name='Алматы'").Scan(&i)
 	// _, err = db.db.Exec(string(cityScript))
 	// if err != nil {
 	// 	log.Fatal("city: ", err)
 	// }
-	// _, err = db.db.Exec(userScript)
+	// _, err = db.db.Exec(PlayerScript)
 	// if err != nil {
-	// 	log.Fatal("user: ", err)
+	// 	log.Fatal("Player: ", err)
 	// }
 	// _, err = db.db.Exec(ratingScript)
 	// if err != nil {
 	// 	log.Fatal("rating: ", err)
 	// }
+}
+
+func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	token, err := config.Exchange(context.TODO(), code)
+	if err != nil {
+		log.Fatal(err)
+	}
+	tok <- token
 }
 
 // Retrieve a token, saves the token, then returns the generated client.
@@ -154,7 +168,7 @@ func getClient(config *oauth2.Config) *http.Client {
 	tok, err := tokenFromFile(tokFile)
 	if err != nil {
 		tok = getTokenFromWeb(config)
-		saveToken(tokFile, tok)
+		saveResp(tokFile, tok)
 	}
 	return config.Client(context.Background(), tok)
 }
@@ -165,16 +179,8 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
 
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Unable to read authorization code: %v", err)
-	}
-
-	tok, err := config.Exchange(context.TODO(), authCode)
-	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
-	}
-	return tok
+	token := <-tok
+	return token
 }
 
 // Retrieves a token from a local file.
@@ -190,8 +196,8 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 }
 
 // Saves a token to a file path.
-func saveToken(path string, token *oauth2.Token) {
-	fmt.Printf("Saving credential file to: %s\n", path)
+func saveResp(path string, token interface{}) {
+	fmt.Printf("Saving resp json to: %s\n", path)
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Fatalf("Unable to cache oauth token: %v", err)
@@ -231,12 +237,12 @@ func getDB() DB {
 	}
 }
 
-func (u User) ToScript() string {
-	return fmt.Sprintf("INSERT INTO \"user\"(user_name, user_surname, city_id) VALUES('%s', '%s', (SELECT city_id FROM city WHERE city_name='%s'));\n", u.Name, u.Surname, u.City.Name)
+func (p Player) ToScript() string {
+	return fmt.Sprintf("INSERT INTO player (player_name, player_surname, city_id) VALUES('%s', '%s', (SELECT city_id FROM city WHERE city_name='%s'));\n", p.Name, p.Surname, p.City.Name)
 }
 
 func (r Rating) ToScript() string {
-	return fmt.Sprintf("INSERT INTO rating(user_id, rating, position, last_update) VALUES((SELECT user_id FROM \"user\" WHERE user_name='%s' AND user_surname='%s'), %d, %d, '%s');\n", r.User.Name, r.User.Surname, r.Rating, r.Position, r.UpdateTime)
+	return fmt.Sprintf("INSERT INTO rating(player_id, rating, last_update) VALUES((SELECT player_id FROM player WHERE player_name='%s' AND player_surname='%s'), %d, '%s');\n", r.Player.Name, r.Player.Surname, r.Rating, r.UpdateTime)
 }
 
 func cityActualization(db DB) error {
@@ -255,5 +261,3 @@ func cityActualization(db DB) error {
 
 	return nil
 }
-
-// func playerUpdate
