@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig `json:"database"`
+	Database  DatabaseConfig `json:"database"`
+	TokenPath string         `json:"token_path"`
 }
 
 type DatabaseConfig struct {
