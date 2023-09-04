@@ -12,14 +12,6 @@ import (
 func main() {
 }
 
-// func handleGoogleCallback(w http.ResponseWriter, r *http.Request) {
-// 	code := r.FormValue("code")
-// 	_, err := config.Exchange(context.TODO(), code)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// }
-
 func ratingActualization(db *sql.DB, rating []models.Rating) {
 	for _, rat := range rating {
 		err := rat.Player.PlayerActualization(db)

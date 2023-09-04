@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Database  DatabaseConfig `json:"database"`
 	TokenPath string         `json:"token_path"`
+	Router    RouterConfig   `json:"router"`
 }
 
 type DatabaseConfig struct {
@@ -19,6 +20,12 @@ type DatabaseConfig struct {
 	Password string `json:"password"`
 	DBName   string `json:"dbname"`
 	SSLMode  string `json:"sslmode"`
+}
+
+type RouterConfig struct {
+	Port         string `json:"port"`
+	ReadTimeout  int    `json:"read_timeout"`
+	WriteTimeout int    `json:"write_timeout"`
 }
 
 func LoadConfig(fileName string) (*viper.Viper, error) {
