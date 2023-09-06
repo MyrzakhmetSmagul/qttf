@@ -1,8 +1,8 @@
 package usecase
 
 import (
-	"context"
 	"qttf/internal/city"
+	"qttf/internal/models"
 )
 
 type cityUC struct {
@@ -10,9 +10,9 @@ type cityUC struct {
 }
 
 func NewCityUseCase(cityRepo city.Repository) city.UseCase {
-	return cityUC{cityRepo: cityRepo}
+	return &cityUC{cityRepo: cityRepo}
 }
 
-func (c cityUC) GetCities(ctx context.Context) {
-
+func (c *cityUC) GetCities() ([]models.City, error) {
+	return c.cityRepo.GetCities()
 }

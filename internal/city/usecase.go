@@ -1,7 +1,7 @@
 package city
 
-import "context"
+import "qttf/internal/models"
 
 type UseCase interface {
-	GetCities(ctx context.Context)
+	GetCities() ([]models.City, error)
 }

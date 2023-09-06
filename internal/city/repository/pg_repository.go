@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"qttf/internal/city"
 	"qttf/internal/models"
+
+	_ "github.com/lib/pq"
 )
 
 type cityRepository struct {
@@ -22,6 +24,22 @@ func (c *cityRepository) Create(city *models.City) error {
 	}
 
 	return nil
+}
+func (c *cityRepository) GetCities() ([]models.City, error) {
+	rows, err := c.db.Query(getCities)
+	if err != nil {
+		return nil, fmt.Errorf("cityRepository.GetCities was failed cause: %w", err)
+	}
+	cities := make([]models.City, 0)
+	for rows.Next() {
+		city := models.City{}
+		err = rows.Scan(&city.Id, &city.Name, &city.Hyperlink)
+		if err != nil {
+			return nil, fmt.Errorf("cityRepository.GetCities was failed.\nrow scan was failed: %w", err)
+		}
+		cities = append(cities, city)
+	}
+	return cities, nil
 }
 
 func (c *cityRepository) GetById(id int) (models.City, error) {
