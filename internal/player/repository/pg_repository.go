@@ -36,7 +36,7 @@ func (p *playerRepository) GetPlayers() ([]models.Player, error) {
 	players := make([]models.Player, 0)
 	for rows.Next() {
 		player := models.Player{}
-		err = rows.Scan(&player.Id, &player.Name, &player.Surname, &player.Hyperlink, &player.City.Id)
+		err = rows.Scan(&player.Id, &player.Name, &player.Surname, &player.Hyperlink, &player.City.Id, &player.City.Name, &player.City.Hyperlink)
 		if err != nil {
 			return nil, fmt.Errorf("playerRepository.GetPlayers, row scanning was failed: %w", err)
 		}

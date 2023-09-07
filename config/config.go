@@ -1,12 +1,11 @@
 package config
 
 import (
-	"errors"
+	"encoding/json"
 	"log"
 	"os"
 	"path"
 
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/sheets/v4"
@@ -35,31 +34,20 @@ type RouterConfig struct {
 	WriteTimeout int    `json:"write_timeout"`
 }
 
-func LoadConfig(fileName string) (*viper.Viper, error) {
-	v := viper.New()
-
-	v.SetConfigName(fileName)
-	v.AddConfigPath(".")
-	v.AutomaticEnv()
-	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, errors.New("config file not found")
-		}
-		return nil, err
-	}
-
-	return v, nil
-}
-
-func ParseConfig(v *viper.Viper) (*Config, error) {
+func ParseConfig(fileName string) (*Config, error) {
 	var c Config
-
-	err := v.Unmarshal(c)
+	cnfFile, err := os.ReadFile(path.Clean(fileName))
 	if err != nil {
-		log.Printf("unable to decode into struct: %v", err)
+		log.Printf("unable to read config file: %v", err)
 		return nil, err
 	}
 
+	if err = json.Unmarshal(cnfFile, &c); err != nil {
+		log.Printf("unable to decode config file: %v", err)
+		return nil, err
+	}
+
+	log.Println(c)
 	credential, err := os.ReadFile(path.Clean(c.CredentialPath))
 	if err != nil {
 		log.Printf("unable to read credential file: %v", err)

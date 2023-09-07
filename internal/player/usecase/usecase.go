@@ -37,22 +37,5 @@ func (p *playerUC) GetPlayers() ([]models.Player, error) {
 		return nil, err
 	}
 
-	cities, err := p.cityRepo.GetCities()
-	if err != nil {
-		return nil, err
-	}
-
-	citiesMap := makeMap(cities)
-	for i := 0; i < len(players); i++ {
-		players[i].City = citiesMap[players[i].City.Id]
-	}
-
 	return players, nil
-}
-
-func makeMap(v []models.City) (cities map[int]models.City) {
-	for _, v := range v {
-		cities[v.Id] = v
-	}
-	return cities
 }
