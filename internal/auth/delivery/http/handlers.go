@@ -11,6 +11,10 @@ type authHandlers struct {
 	authUC auth.UseCase
 }
 
+func NewAuthHandlers(authUC auth.UseCase) auth.Handlers {
+	return &authHandlers{authUC: authUC}
+}
+
 // SaveGoogleToken implements auth.Handlers.
 func (a *authHandlers) SaveGoogleToken() echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -27,8 +31,4 @@ func (a *authHandlers) GetGoogleToken() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, a.authUC.GetGoogleToken())
 	}
-}
-
-func NewAuthHandlers(authUC auth.UseCase) auth.Handlers {
-	return &authHandlers{authUC: authUC}
 }

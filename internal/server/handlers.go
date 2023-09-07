@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+	authHttp "qttf/internal/auth/delivery/http"
+	authUsecase "qttf/internal/auth/usecase"
 	cityHttp "qttf/internal/city/delivery/http"
 	cityRepository "qttf/internal/city/repository"
 	cityUsecase "qttf/internal/city/usecase"
@@ -22,11 +24,13 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	ratingRepo := ratingRepository.NewRatingRepository(s.db)
 
 	// Init usecases
+	authUC := authUsecase.NewAuthUseCase(s.cnf)
 	cityUC := cityUsecase.NewCityUseCase(cityRepo)
 	playerUC := playerUsecase.NewPlayerUseCase(playerRepo)
 	ratingUC := ratingUsecase.NewRatingUseCase(ratingRepo)
 
 	// Init handlers
+	authHandlers := authHttp.NewAuthHandlers(authUC)
 	cityHandlers := cityHttp.NewCityHandlers(cityUC)
 	playerHandlers := playerHttp.NewPlayerHandlers(playerUC)
 	ratingHandlers := ratingHttp.NewRatingHandlers(ratingUC)
@@ -34,10 +38,12 @@ func (s *Server) MapHandlers(e *echo.Echo) error {
 	v1 := e.Group("/api/v1")
 
 	health := v1.Group("/health")
+	authGroup := v1.Group("/auth")
 	cityGroup := v1.Group("/cities")
 	playerGroup := v1.Group("/players")
 	ratingGroup := v1.Group("/rating")
 
+	authHttp.MapAuthHandlers(authGroup, authHandlers)
 	cityHttp.MapCityRoutes(cityGroup, cityHandlers)
 	playerHttp.MapPlayerRoutes(playerGroup, playerHandlers)
 	ratingHttp.MapRatingRoutes(ratingGroup, ratingHandlers)
