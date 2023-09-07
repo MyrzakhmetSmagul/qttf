@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"qttf/internal/city"
 	"qttf/internal/models"
@@ -28,6 +29,10 @@ func (c *cityRepository) Create(city *models.City) error {
 func (c *cityRepository) GetCities() ([]models.City, error) {
 	rows, err := c.db.Query(getCities)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.City{}, nil
+		}
+
 		return nil, fmt.Errorf("cityRepository.GetCities was failed cause: %w", err)
 	}
 	cities := make([]models.City, 0)
@@ -45,7 +50,7 @@ func (c *cityRepository) GetCities() ([]models.City, error) {
 func (c *cityRepository) GetById(id int) (models.City, error) {
 	city := models.City{Id: id}
 	err := c.db.QueryRow(getById, id).Scan(&city.Name, &city.Hyperlink)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return city, fmt.Errorf("cityRepository.GetById was failed cause: %w", err)
 	}
 

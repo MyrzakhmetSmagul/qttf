@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"qttf/internal/models"
 	"qttf/internal/player"
@@ -30,6 +31,10 @@ func (p *playerRepository) Create(player *models.Player) error {
 func (p *playerRepository) GetPlayers() ([]models.Player, error) {
 	rows, err := p.db.Query(getPlayers)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.Player{}, nil
+		}
+
 		return nil, fmt.Errorf("playerRepository.GetPlayers was failed cause: %w", err)
 	}
 
@@ -50,7 +55,7 @@ func (p *playerRepository) GetPlayers() ([]models.Player, error) {
 func (p *playerRepository) GetById(id int) (models.Player, error) {
 	player := models.Player{Id: id}
 	err := p.db.QueryRow(getPlayerById, id).Scan(&player.Name, &player.Surname, &player.Hyperlink, &player.City.Id)
-	if err != nil {
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return player, fmt.Errorf("playerRepository.GetById was failed: %w", err)
 	}
 

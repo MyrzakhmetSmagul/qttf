@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"qttf/internal/models"
 	"qttf/internal/rating"
@@ -17,6 +18,10 @@ type ratingRepository struct {
 func (r *ratingRepository) GetRating() ([]models.Rating, error) {
 	rows, err := r.db.Query(getRating)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.Rating{}, nil
+		}
+
 		return nil, fmt.Errorf("ratingRepository.GetRating was failed: %w", err)
 	}
 
