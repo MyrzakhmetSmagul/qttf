@@ -14,6 +14,16 @@ type ratingRepository struct {
 	db *sql.DB
 }
 
+// Create implements rating.Repository.
+func (r *ratingRepository) Create(rating *models.Rating) error {
+	err := r.db.QueryRow(create, rating.Player.Id, rating.Rating, rating.UpdateTime).Scan(&rating.Id)
+	if err != nil {
+		return fmt.Errorf("ratingRepository.create was failed: %w", err)
+	}
+
+	return nil
+}
+
 // GetRating implements rating.Repository.
 func (r *ratingRepository) GetRating() ([]models.Rating, error) {
 	rows, err := r.db.Query(getRating)

@@ -12,11 +12,12 @@ import (
 )
 
 type Config struct {
-	Database       DatabaseConfig `json:"database"`
-	TokenPath      string         `json:"token_path"`
-	Router         RouterConfig   `json:"router"`
-	CredentialPath string         `json:"credential_path"`
-	GoogleCOnfig   *oauth2.Config `json:"google_config,omitemppty"`
+	Database       DatabaseConfig     `json:"database"`
+	TokenPath      string             `json:"token_path"`
+	Router         RouterConfig       `json:"router"`
+	CredentialPath string             `json:"credential_path"`
+	Spreadsheet    SpreadsheetsConfig `json:"spreadsheet"`
+	GoogleCOnfig   *oauth2.Config     `json:"google_config,omitemppty"`
 }
 
 type DatabaseConfig struct {
@@ -32,6 +33,11 @@ type RouterConfig struct {
 	Port         string `json:"port"`
 	ReadTimeout  int    `json:"read_timeout"`
 	WriteTimeout int    `json:"write_timeout"`
+}
+
+type SpreadsheetsConfig struct {
+	SpreadsheetId string `json:"spreadsheet_id"`
+	SheetName     string `json:"sheet_name"`
 }
 
 func ParseConfig(fileName string) (*Config, error) {

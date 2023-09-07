@@ -1,4 +1,4 @@
-package sheets
+package sheet
 
 import (
 	"fmt"

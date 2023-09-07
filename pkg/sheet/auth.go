@@ -1,4 +1,4 @@
-package sheets
+package sheet
 
 import (
 	"context"
@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 
 	"golang.org/x/oauth2"
 )
 
 // Retrieves a token from a local file.
 func tokenFromFile(tokenPath string) (*oauth2.Token, error) {
-	f, err := os.Open(tokenPath)
+	f, err := os.Open(path.Clean(tokenPath))
 	if err != nil {
 		return nil, err
 	}
@@ -22,12 +23,11 @@ func tokenFromFile(tokenPath string) (*oauth2.Token, error) {
 	return tok, err
 }
 
-func GetClient(ctx context.Context, config *oauth2.Config) (*http.Client, error) {
+func GetClient(ctx context.Context, config *oauth2.Config, tokenPath string) (*http.Client, error) {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
-	tokFile := "token.json"
-	tok, err := tokenFromFile(tokFile)
+	tok, err := tokenFromFile(tokenPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve the client: %w", err)
 	}

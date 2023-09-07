@@ -1,7 +1,7 @@
 package repository
 
 const (
-	createCity = `INSERT INTO city (city_name, city_link) VALUES($1, $2) ON CONFLICT (city_link) DO NOTHING RETURNING *;`
+	createCity = `INSERT INTO city (city_name, city_link) VALUES($1, $2) ON CONFLICT (city_link) DO NOTHING RETURNING city_id;`
 
 	getCities = `SELECT city_id, city_name, city_link FROM city`
 
