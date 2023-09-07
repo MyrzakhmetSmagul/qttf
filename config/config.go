@@ -3,14 +3,21 @@ package config
 import (
 	"errors"
 	"log"
+	"os"
+	"path"
 
 	"github.com/spf13/viper"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/sheets/v4"
 )
 
 type Config struct {
-	Database  DatabaseConfig `json:"database"`
-	TokenPath string         `json:"token_path"`
-	Router    RouterConfig   `json:"router"`
+	Database       DatabaseConfig `json:"database"`
+	TokenPath      string         `json:"token_path"`
+	Router         RouterConfig   `json:"router"`
+	CredentialPath string         `json:"credential_path"`
+	GoogleCOnfig   *oauth2.Config `json:"google_config,omitemppty"`
 }
 
 type DatabaseConfig struct {
@@ -49,9 +56,21 @@ func ParseConfig(v *viper.Viper) (*Config, error) {
 
 	err := v.Unmarshal(c)
 	if err != nil {
-		log.Printf("unable to decode into struct, %v", err)
+		log.Printf("unable to decode into struct: %v", err)
 		return nil, err
 	}
 
-	return nil, nil
+	credential, err := os.ReadFile(path.Clean(c.CredentialPath))
+	if err != nil {
+		log.Printf("unable to read credential file: %v", err)
+		return nil, err
+	}
+
+	c.GoogleCOnfig, err = google.ConfigFromJSON(credential, sheets.SpreadsheetsReadonlyScope)
+	if err != nil {
+		log.Printf("unable to get google config from json: %v", err)
+		return nil, err
+	}
+
+	return &c, nil
 }
