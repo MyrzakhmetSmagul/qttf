@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"net/url"
 	"qttf/internal/auth"
 
 	echo "github.com/labstack/echo/v4"
@@ -29,6 +30,6 @@ func (a *authHandlers) SaveGoogleToken() echo.HandlerFunc {
 // GetGoogleToken implements auth.Handlers.
 func (a *authHandlers) GetGoogleToken() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, a.authUC.GetGoogleToken())
+		return c.JSON(http.StatusOK, url.QueryEscape(a.authUC.GetGoogleToken()))
 	}
 }

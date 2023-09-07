@@ -47,7 +47,6 @@ func ParseConfig(fileName string) (*Config, error) {
 		return nil, err
 	}
 
-	log.Println(c)
 	credential, err := os.ReadFile(path.Clean(c.CredentialPath))
 	if err != nil {
 		log.Printf("unable to read credential file: %v", err)
