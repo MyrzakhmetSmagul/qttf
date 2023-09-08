@@ -9,5 +9,5 @@ const (
 	FROM rating r 
 	INNER JOIN player p ON p.player_id = r.player_id
 	INNER JOIN city c ON c.city_id = p.city_id
-	ORDER BY r.rating DESC`
+	ORDER BY r.rating DESC, r.last_update ASC`
 )
