@@ -1,7 +1,10 @@
 package repository
 
 const (
-	create    = `INSERT INTO rating(player_id, rating, last_update) VALUES($1, $2, $3) ON CONFLICT (player_id) DO NOTHING RETURNING rating_id;`
+	create = `INSERT INTO rating(player_id, rating, last_update) VALUES($1, $2, $3) ON CONFLICT (player_id) DO NOTHING RETURNING rating_id;`
+
+	getId = `SELECT rating_id FROM rating WHERE player_id=$1;`
+
 	getRating = `SELECT r.rating_id, p.player_id, p.player_name, p.player_surname, p.profile_link, c.city_id, c.city_name, c.city_link, r.rating, r.last_update
 	FROM rating r 
 	INNER JOIN player p ON p.player_id = r.player_id

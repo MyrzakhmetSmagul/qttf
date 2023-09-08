@@ -19,7 +19,12 @@ func NewCityRepository(db *sql.DB) city.Repository {
 }
 
 func (c *cityRepository) Create(city *models.City) error {
-	err := c.db.QueryRow(createCity, city.Name, city.Hyperlink).Scan(&city.Id)
+	_, err := c.db.Exec(createCity, city.Name, city.Hyperlink)
+	if err != nil {
+		return fmt.Errorf("cityRepository.Create was failed cause: %w", err)
+	}
+
+	err = c.db.QueryRow(getId, city.Hyperlink).Scan(&city.Id)
 	if err != nil {
 		return fmt.Errorf("cityRepository.Create was failed cause: %w", err)
 	}

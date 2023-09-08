@@ -8,5 +8,5 @@ import (
 
 func MapAuthHandlers(authGroup *echo.Group, h auth.Handlers) {
 	authGroup.GET("/", h.GetGoogleToken())
-	authGroup.POST("/", h.SaveGoogleToken())
+	authGroup.GET("/save/token", h.SaveGoogleToken())
 }

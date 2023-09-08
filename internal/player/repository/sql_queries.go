@@ -1,7 +1,9 @@
 package repository
 
 const (
-	create = `INSERT INTO player(player_name, player_surname, profile_link, city_id) VALUES($1, $2, $3, $4) ON CONFLICT (profile_link) DO NOTHING RETURNING player_id;`
+	create = `INSERT INTO player(player_name, player_surname, profile_link, city_id) VALUES($1, $2, $3, $4) ON CONFLICT (profile_link) DO NOTHING;`
+
+	getId = `SELECT player_id FROM player WHERE profile_link=$1;`
 
 	getPlayers = `SELECT p.player_id, p.player_name, p.player_surname, p.profile_link, c.city_id, c.city_name, c.city_link
 	FROM player p 

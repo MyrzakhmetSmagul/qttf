@@ -21,10 +21,16 @@ func NewPlayerRepository(db *sql.DB) player.Repository {
 }
 
 func (p *playerRepository) Create(player *models.Player) error {
-	err := p.db.QueryRow(create, player.Name, player.Surname, player.Hyperlink, player.Id).Scan(&player.Id)
+	_, err := p.db.Exec(create, player.Name, player.Surname, player.Hyperlink, player.City.Id)
 	if err != nil {
 		return fmt.Errorf("playerRepository.Create was failed cause: %w", err)
 	}
+
+	err = p.db.QueryRow(getId, player.Hyperlink).Scan(&player.Id)
+	if err != nil {
+		return fmt.Errorf("playerRepository.Create was failed cause: %w", err)
+	}
+
 	return nil
 }
 
